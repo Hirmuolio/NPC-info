@@ -28,29 +28,17 @@ th = np.array([0, 1, 0, 0])
 kin = np.array([0, 0, 1, 0])
 ex = np.array([0, 0, 0, 1])
 
-ammo_list = ['emp',
-	'phased plasma',
-	'fusion',
-	'hail',
-	'antimatter',
-	'void',
-	'multispectral',
-	'conflag',
-	'electromagnetic',
-	'thermal',
-	'kinetic',
-	'explosive']
 
 while True:
 	#Call ESI
 	type_id = input("Give type ID: ")
 
-	Url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=tranquility&language=en-us"
+	url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=tranquility&language=en-us"
 
 	#Uncomment this to get SISI stats
-	#Url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=singularity&language=en-us"
+	#url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=singularity&language=en-us"
 
-	esi_response = requests.get(Url)
+	esi_response = requests.get(url)
 	npc_stats = esi_response.json()
 
 	#Attributes:
@@ -146,6 +134,19 @@ while True:
 	th_ehp = structure/np.sum(th*structure_resist) + armor/np.sum(th*armor_resist) + shield/np.sum(th*shield_resist)
 	kin_ehp = structure/np.sum(kin*structure_resist) + armor/np.sum(kin*armor_resist) + shield/np.sum(kin*shield_resist)
 	ex_ehp = structure/np.sum(ex*structure_resist) + armor/np.sum(ex*armor_resist) + shield/np.sum(ex*shield_resist)
+	
+	ammo_list = ['emp',
+	'phased plasma',
+	'fusion',
+	'hail',
+	'antimatter',
+	'void',
+	'multispectral',
+	'conflag',
+	'electromagnetic',
+	'thermal',
+	'kinetic',
+	'explosive']
 	
 	ehp = np.array(	[emp_ehp,
 	phased_ehp,
