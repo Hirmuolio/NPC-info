@@ -5,7 +5,8 @@ import requests
 import json
 
 #Ammo attributes
-#em, th, kin, ex
+#arrays in this order: em, th, kin, ex
+#all are normalized to total damage = 1
 
 #Projectile
 emp = np.array([9, 0, 1, 2])/np.sum([9, 0, 1, 2])
@@ -26,6 +27,19 @@ em = np.array([1, 0, 0, 0])
 th = np.array([0, 1, 0, 0])
 kin = np.array([0, 0, 1, 0])
 ex = np.array([0, 0, 0, 1])
+
+ammo_list = ['emp',
+	'phased plasma',
+	'fusion',
+	'hail',
+	'antimatter',
+	'void',
+	'multispectral',
+	'conflag',
+	'electromagnetic',
+	'thermal',
+	'kinetic',
+	'explosive']
 
 while True:
 	#Call ESI
@@ -116,9 +130,6 @@ while True:
 	armor_resist = np.array([armor_em, armor_th, armor_kin, armor_ex])
 	shield_resist = np.array([shield_em, shield_th, shield_kin, shield_ex])
 
-
-
-
 	#Calculate the EHP of the rat with all the ammo typses.
 	emp_ehp = structure/np.sum(emp*structure_resist) + armor/np.sum(emp*armor_resist) + shield/np.sum(emp*shield_resist)
 	phased_ehp = structure/np.sum(phased*structure_resist) + armor/np.sum(phased*armor_resist) + shield/np.sum(phased*shield_resist)
@@ -135,8 +146,7 @@ while True:
 	th_ehp = structure/np.sum(th*structure_resist) + armor/np.sum(th*armor_resist) + shield/np.sum(th*shield_resist)
 	kin_ehp = structure/np.sum(kin*structure_resist) + armor/np.sum(kin*armor_resist) + shield/np.sum(kin*shield_resist)
 	ex_ehp = structure/np.sum(ex*structure_resist) + armor/np.sum(ex*armor_resist) + shield/np.sum(ex*shield_resist)
-
-	#Sort things for displaying
+	
 	ehp = np.array(	[emp_ehp,
 	phased_ehp,
 	fusion_ehp,
@@ -150,30 +160,18 @@ while True:
 	kin_ehp,
 	ex_ehp
 	])
-
-	ammos = ['emp',
-	'phased plasma',
-	'fusion',
-	'hail',
-	'antimatter',
-	'void',
-	'multispectral',
-	'conflag',
-	'electromagnetic',
-	'thermal',
-	'kinetic',
-	'explosive']
-
-	ehp_normalized = np.amin(ehp) / ehp
 	
-	ehp_normalized, ammos, ehp = zip(*sorted(zip(ehp_normalized, ammos, ehp)))
+	ehp_normalized = np.amin(ehp) / ehp
+
+	#Sort and round things for displaying
+	ehp_normalized, ammo_list, ehp = zip(*sorted(zip(ehp_normalized, ammo_list, ehp)))
 
 	ehp_normalized = np.around(ehp_normalized, decimals=2)
 	ehp = np.around(ehp , decimals=1)
 
 	ehp_normalized = list(reversed(ehp_normalized))
 	ehp = list(reversed(ehp))
-	ammos = list(reversed(ammos))
+	ammo_list = list(reversed(ammo_list))
 
 	print('')
 	print('----')
@@ -183,8 +181,8 @@ while True:
 	print( '{:<17s} {:<14} {:<}'.format('Ammo', 'Relative', 'EHP'))
 	print( '{:<17s} {:<14} {:<}'.format('', 'effectiveness', ''))
 
-	for n in range(0, len(ammos)):
-		ammo = ammos[n]
+	for n in range(0, len(ammo_list)):
+		ammo = ammo_list[n]
 		effectiveness = ehp_normalized[n]
 		effectivehp = ehp[n]
 		print( '{:<17s} {:<14} {:<}'.format(ammo, str(effectiveness), str(effectivehp)))
