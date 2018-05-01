@@ -4,41 +4,26 @@ import numpy as np
 import requests
 import json
 
-#Ammo attributes
-#arrays in this order: em, th, kin, ex
-#all are normalized to total damage = 1
+def check_error(esi_response, job):
+	status_code = esi_response.status_code
+	
+	if status_code != 200:
+		#Error
+		print('Failed to '+job+'. Error',esi_response.status_code,'-', esi_response.json()['error'])
+		error = True
+		global has_errors
+		has_errors = True
+	else:
+		error = False
+		try:
+			#Try to print warning
+			print('Warning',esi_response.headers['warning'])
+		except KeyError:
+			warning = False
+	
+	return error
 
-#Projectile
-emp = np.array([9, 0, 1, 2])/np.sum([9, 0, 1, 2])
-phased = np.array([0, 10, 2, 0])/np.sum([0, 10, 2, 0])
-fusion = np.array([0, 0, 2, 10])/np.sum([0, 0, 2, 10])
-hail = np.array([0, 0, 3.3, 12.1])/np.sum([0, 0, 3.3, 12.1])
-
-#Hybrid
-antimatter = np.array([0, 5, 7, 0])/np.sum([0, 5, 7, 0])
-void = np.array([0, 7.7, 7.7, 0])/np.sum([0, 7.7, 7.7, 0])
-
-#Laser
-multi = np.array([7, 5, 0, 0])/np.sum([7, 5, 0, 0])
-conflag = np.array([7.7, 7.7, 0, 0])/np.sum([7.7, 7.7, 0, 0])
-
-#Single damage
-em = np.array([1, 0, 0, 0])
-th = np.array([0, 1, 0, 0])
-kin = np.array([0, 0, 1, 0])
-ex = np.array([0, 0, 0, 1])
-
-
-while True:
-	#Call ESI
-	type_id = input("Give type ID: ")
-
-	url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=tranquility&language=en-us"
-
-	#Uncomment this to get SISI stats
-	#url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=singularity&language=en-us"
-
-	esi_response = requests.get(url)
+def calculate_effectiveness(esi_response):
 	npc_stats = esi_response.json()
 
 	#Attributes:
@@ -75,8 +60,12 @@ while True:
 	armor_th = 1
 	armor_ex = 1
 	armor_em = 1
-
-	length = len(npc_stats['dogma_attributes'])
+	
+	try:
+		length = len(npc_stats['dogma_attributes'])
+	except KeyError:
+		print('Type ID',npc_stats['type_id'],'has no attributes')
+		return
 
 	for n in range(0, length):
 		dogma_id = npc_stats['dogma_attributes'][n]['attribute_id']
@@ -190,3 +179,43 @@ while True:
 	
 	print('----')
 	print('')
+
+#Ammo attributes
+#arrays in this order: em, th, kin, ex
+#all are normalized to total damage = 1
+
+#Projectile
+emp = np.array([9, 0, 1, 2])/np.sum([9, 0, 1, 2])
+phased = np.array([0, 10, 2, 0])/np.sum([0, 10, 2, 0])
+fusion = np.array([0, 0, 2, 10])/np.sum([0, 0, 2, 10])
+hail = np.array([0, 0, 3.3, 12.1])/np.sum([0, 0, 3.3, 12.1])
+
+#Hybrid
+antimatter = np.array([0, 5, 7, 0])/np.sum([0, 5, 7, 0])
+void = np.array([0, 7.7, 7.7, 0])/np.sum([0, 7.7, 7.7, 0])
+
+#Laser
+multi = np.array([7, 5, 0, 0])/np.sum([7, 5, 0, 0])
+conflag = np.array([7.7, 7.7, 0, 0])/np.sum([7.7, 7.7, 0, 0])
+
+#Single damage
+em = np.array([1, 0, 0, 0])
+th = np.array([0, 1, 0, 0])
+kin = np.array([0, 0, 1, 0])
+ex = np.array([0, 0, 0, 1])
+
+
+while True:
+	#Call ESI
+	type_id = input("Give type ID: ")
+
+	url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=tranquility&language=en-us"
+
+	#Uncomment this to get SISI stats
+	#url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=singularity&language=en-us"
+
+	esi_response = requests.get(url)
+	
+	if not check_error(esi_response, 'get NPC attributes'):
+		calculate_effectiveness(esi_response)
+	
