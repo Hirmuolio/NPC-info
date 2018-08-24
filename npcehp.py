@@ -4,6 +4,8 @@ import numpy as np
 import requests
 import json
 
+esi_calling.set_user_agent('Hirmuolio/NPC-EHP-calculator')
+
 def check_error(esi_response, job):
 	status_code = esi_response.status_code
 	
