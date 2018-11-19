@@ -1,29 +1,13 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import requests
 import json
 
-esi_calling.set_user_agent('Hirmuolio/NPC-EHP-calculator')
+import esi_calling
 
-def check_error(esi_response, job):
-	status_code = esi_response.status_code
-	
-	if status_code != 200:
-		#Error
-		print('Failed to '+job+'. Error',esi_response.status_code,'-', esi_response.json()['error'])
-		error = True
-		global has_errors
-		has_errors = True
-	else:
-		error = False
-		try:
-			#Try to print warning
-			print('Warning',esi_response.headers['warning'])
-		except KeyError:
-			warning = False
-	
-	return error
+datasource = 'tranquility'
+#datasource = 'singularity'
+
 
 def calculate_effectiveness(esi_response):
 	npc_stats = esi_response.json()
@@ -47,7 +31,7 @@ def calculate_effectiveness(esi_response):
 	#272, shield explosive resonance
 	#271, shield em resonance
 
-	#zero resistance is not included in API
+	#zero resistance and HP are not included in API
 	structure_kin = 1
 	structure_th = 1
 	structure_ex = 1
@@ -62,6 +46,10 @@ def calculate_effectiveness(esi_response):
 	armor_th = 1
 	armor_ex = 1
 	armor_em = 1
+	
+	shield = 0
+	armor = 0
+	structure = 0
 	
 	try:
 		length = len(npc_stats['dogma_attributes'])
@@ -104,10 +92,42 @@ def calculate_effectiveness(esi_response):
 			shield_ex = value
 		elif dogma_id == 271:
 			shield_em = value
-
+	
+	#New resist = 1-(1-Resist)×(1+Penalty)
+	#Edit these to apply resist penalties
+	
+	# structure_em = 1 - resist
+	
+	
+	#EM penalty
+	structure_em = min(1, (structure_em)*(1+em_penalty))
+	armor_em = min(1, (armor_em)*(1+em_penalty))
+	shield_em = min(1, (shield_em)*(1+em_penalty))
+	
+	#thermal penalty
+	structure_th = min(1, (structure_th)*(1+th_penalty))
+	armor_th = min(1, (armor_th)*(1+th_penalty))
+	shield_th = min(1, (shield_th)*(1+th_penalty))
+	
+	#kinetic penalty
+	structure_kin = min(1, (structure_kin)*(1+kin_penalty))
+	armor_kin = min(1, (armor_kin)*(1+kin_penalty))
+	shield_kin = min(1, (shield_kin)*(1+kin_penalty))
+	
+	#explosive penalty
+	structure_ex = min(1, (structure_ex)*(1+ex_penalty))
+	armor_ex = min(1, (armor_ex)*(1+ex_penalty))
+	shield_ex = min(1, (shield_ex)*(1+ex_penalty))
+	
+	
+	
+	
 	structure_resist = np.array([structure_em, structure_th, structure_kin, structure_ex])
 	armor_resist = np.array([armor_em, armor_th, armor_kin, armor_ex])
 	shield_resist = np.array([shield_em, shield_th, shield_kin, shield_ex])
+	
+	
+	
 
 	#Calculate the EHP of the rat with all the ammo typses.
 	emp_ehp = structure/np.sum(emp*structure_resist) + armor/np.sum(emp*armor_resist) + shield/np.sum(emp*shield_resist)
@@ -170,7 +190,12 @@ def calculate_effectiveness(esi_response):
 	print('Type ID:', npc_stats['type_id'])
 	print('Name:', npc_stats['name'])
 	print('----')
-	print( '{:<17s} {:<14} {:<}'.format('Ammo', 'Relative', 'EHP'))
+	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format(' ', 'HP', 'EM', 'TH', 'KIN', 'EX'))
+	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('shield', int(shield), str((1-shield_resist[0])*100)+'%', str((1-shield_resist[1])*100)+'%', str((1-shield_resist[2])*100)+'%', str((1-shield_resist[3])*100)+'%'))
+	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('armor', int(armor), str((1-armor_resist[0])*100)+'%', str((1-armor_resist[1])*100)+'%', str((1-armor_resist[3])*100)+'%', str((1-armor_resist[3])*100)+'%'))
+	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('structure', int(structure), str((1-structure_resist[0])*100)+'%', str((1-structure_resist[1])*100)+'%', str((1-structure_resist[2])*100)+'%', str((1-structure_resist[3])*100)+'%'))
+	print('----')
+	print( '{:<17s} {:<14} {:<}'.format('Ammo/damage type', 'Relative', 'EHP'))
 	print( '{:<17s} {:<14} {:<}'.format('', 'effectiveness', ''))
 
 	for n in range(0, len(ammo_list)):
@@ -206,6 +231,13 @@ th = np.array([0, 1, 0, 0])
 kin = np.array([0, 0, 1, 0])
 ex = np.array([0, 0, 0, 1])
 
+#Define resist penalties
+#50% = 0.5 and so on
+em_penalty = 0
+th_penalty = 0
+kin_penalty = 0
+ex_penalty = 0
+
 
 while True:
 	#Call ESI
@@ -215,9 +247,12 @@ while True:
 
 	#Uncomment this to get SISI stats
 	#url = "https://esi.tech.ccp.is/v3/universe/types/"+type_id+"/?datasource=singularity&language=en-us"
-
-	esi_response = requests.get(url)
 	
-	if not check_error(esi_response, 'get NPC attributes'):
+	esi_response = esi_calling.call_esi(scope = '/v3/universe/types/{par}', url_parameter = type_id, datasource = datasource, job = 'get type ID attributes')
+
+	
+	if not esi_response.status_code in [400, 404]:
 		calculate_effectiveness(esi_response)
+	else:
+		print(esi_response.status_code, '- invalid ID')
 	
