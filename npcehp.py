@@ -192,7 +192,7 @@ def calculate_effectiveness(esi_response):
 	print('----')
 	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format(' ', 'HP', 'EM', 'TH', 'KIN', 'EX'))
 	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('shield', int(shield), str((1-shield_resist[0])*100)+'%', str((1-shield_resist[1])*100)+'%', str((1-shield_resist[2])*100)+'%', str((1-shield_resist[3])*100)+'%'))
-	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('armor', int(armor), str((1-armor_resist[0])*100)+'%', str((1-armor_resist[1])*100)+'%', str((1-armor_resist[3])*100)+'%', str((1-armor_resist[3])*100)+'%'))
+	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('armor', int(armor), str((1-armor_resist[0])*100)+'%', str((1-armor_resist[1])*100)+'%', str((1-armor_resist[2])*100)+'%', str((1-armor_resist[3])*100)+'%'))
 	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('structure', int(structure), str((1-structure_resist[0])*100)+'%', str((1-structure_resist[1])*100)+'%', str((1-structure_resist[2])*100)+'%', str((1-structure_resist[3])*100)+'%'))
 	print('----')
 	print( '{:<17s} {:<14} {:<}'.format('Ammo/damage type', 'Relative', 'EHP'))
