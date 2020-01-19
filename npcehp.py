@@ -184,16 +184,31 @@ def calculate_effectiveness(esi_response):
 	ehp_normalized = list(reversed(ehp_normalized))
 	ehp = list(reversed(ehp))
 	ammo_list = list(reversed(ammo_list))
-
+	
+	prnt_shield_em = str( round((1-shield_resist[0])*100, 2) )+'%'
+	prnt_shield_th = str( round((1-shield_resist[1])*100, 2) )+'%'
+	prnt_shield_kin = str( round((1-shield_resist[2])*100, 2) )+'%'
+	prnt_shield_ex = str( round((1-shield_resist[3])*100, 2) )+'%'
+	
+	prnt_armor_em = str( round((1-armor_resist[0])*100, 2) )+'%'
+	prnt_armor_th = str( round((1-armor_resist[1])*100, 2) )+'%'
+	prnt_armor_kin = str( round((1-armor_resist[2])*100, 2) )+'%'
+	prnt_armor_ex = str( round((1-armor_resist[3])*100, 2) )+'%'
+	
+	prnt_structure_em = str( round((1-structure_resist[0])*100, 2) )+'%'
+	prnt_structure_th = str( round((1-structure_resist[1])*100, 2) )+'%'
+	prnt_structure_kin = str( round((1-structure_resist[2])*100, 2) )+'%'
+	prnt_structure_ex = str( round((1-structure_resist[3])*100, 2) )+'%'
+	
 	print('')
 	print('----')
 	print('Type ID:', npc_stats['type_id'])
 	print('Name:', npc_stats['name'])
 	print('----')
 	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format(' ', 'HP', 'EM', 'TH', 'KIN', 'EX'))
-	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('shield', int(shield), str((1-shield_resist[0])*100)+'%', str((1-shield_resist[1])*100)+'%', str((1-shield_resist[2])*100)+'%', str((1-shield_resist[3])*100)+'%'))
-	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('armor', int(armor), str((1-armor_resist[0])*100)+'%', str((1-armor_resist[1])*100)+'%', str((1-armor_resist[2])*100)+'%', str((1-armor_resist[3])*100)+'%'))
-	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('structure', int(structure), str((1-structure_resist[0])*100)+'%', str((1-structure_resist[1])*100)+'%', str((1-structure_resist[2])*100)+'%', str((1-structure_resist[3])*100)+'%'))
+	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('shield', int(shield), prnt_shield_em, prnt_shield_th, prnt_shield_kin, prnt_shield_ex) )
+	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('armor', int(armor), prnt_armor_em, prnt_armor_th, prnt_armor_kin, prnt_armor_ex ) )
+	print( '{:<10} {:<10} {:<8} {:<8} {:<8} {:<8}'.format('structure', int(structure), prnt_structure_em, prnt_structure_th, prnt_structure_kin, prnt_structure_ex) )
 	print('----')
 	print( '{:<17s} {:<14} {:<}'.format('Ammo/damage type', 'Relative', 'EHP'))
 	print( '{:<17s} {:<14} {:<}'.format('', 'effectiveness', ''))
