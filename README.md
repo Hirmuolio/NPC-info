@@ -10,7 +10,7 @@ Diplays the following:
 You give the script the type ID of the rat. 
 The script gets the stats of the rat fom ESI.
 
-Some of the attributes are different on old and new rats. This script is based on new rats so it may not show all info on old rats.
+Some of the attributes are different on old and new rats. This script is based on new rats so it may not show all info on old rats. Some rats also have nonsensical/missing stats (bugs?).
 
 Requires:
 * Python 3
