@@ -2,72 +2,59 @@
 
 import numpy as np
 import json
+import gzip
 
 import esi_calling
 
-datasource = 'tranquility'
-#datasource = 'singularity'
+esi_calling.set_user_agent('Hirmuolio/NPC-info')
 
 
 def print_general( npc_stats ):
-	print('')
-	print('----')
 	print('Name:', npc_stats['name'])
 	print('Type ID:', npc_stats['type_id'])
 	print('\n' + npc_stats['description'])
 	
 
 def print_tank( npc_stats ):
-	#Attributes:
-	#9,   structure HP
-	#109, structure kinteic resonance
-	#110, structure thermal resonance
-	#111, structure explosive resonance
-	#113, structure em resonance
 
-	#265  armor HP
-	#269, armor kinteic resonance
-	#270, armor thermal resonance
-	#268, armor explosive resonance
-	#267, armor em resonance
-	#2635 armor rep amount
-	#2633 armor rep duration (ms)
-	#1009 entityArmorRepairDelayChance
-
-	#263  shield HP
-	#273, shield kinteic resonance
-	#274, shield thermal resonance
-	#272, shield explosive resonance
-	#271, shield em resonance
-	#479  shield recharge time
-	#636  shield rep duration (ms)
-	#637  shield rep amount
-	#639  entityShieldBoostDelayChance
-
-	#zero resistance and HP are not included in API
-	structure_kin = get_attribute( "109", 1, npc_stats )
-	structure_th  = get_attribute( "110", 1, npc_stats )
-	structure_ex  = get_attribute( "111", 1, npc_stats )
-	structure_em  = get_attribute( "113", 1, npc_stats )
+	# Note: zero resistance and HP are not included in API
+	structure_kin = get_attribute( 'kineticDamageResonance', npc_stats )
+	structure_th  = get_attribute( 'thermalDamageResonance', npc_stats )
+	structure_ex  = get_attribute( 'explosiveDamageResonance', npc_stats )
+	structure_em  = get_attribute( 'emDamageResonance', npc_stats )
 	
-	shield_kin = get_attribute( "273", 1, npc_stats )
-	shield_th  = get_attribute( "274", 1, npc_stats )
-	shield_ex  = get_attribute( "272", 1, npc_stats )
-	shield_em  = get_attribute( "271", 1, npc_stats )
+	shield_kin = get_attribute( 'shieldKineticDamageResonance', npc_stats )
+	shield_th  = get_attribute( 'shieldThermalDamageResonance', npc_stats )
+	shield_ex  = get_attribute( 'shieldExplosiveDamageResonance', npc_stats )
+	shield_em  = get_attribute( 'shieldEmDamageResonance', npc_stats )
 	
-	armor_kin = get_attribute( "269", 1, npc_stats )
-	armor_th  = get_attribute( "270", 1, npc_stats )
-	armor_ex  = get_attribute( "268", 1, npc_stats )
-	armor_em  = get_attribute( "267", 1, npc_stats )
+	armor_kin = get_attribute( 'armorKineticDamageResonance', npc_stats )
+	armor_th  = get_attribute( 'armorThermalDamageResonance', npc_stats )
+	armor_ex  = get_attribute( 'armorExplosiveDamageResonance', npc_stats )
+	armor_em  = get_attribute( 'armorEmDamageResonance', npc_stats )
 	
 	
-	shield    = get_attribute( "263", 0, npc_stats )
-	armor     = get_attribute( "265", 0, npc_stats )
-	structure = get_attribute( "9", 0, npc_stats )
+	shield    = get_attribute( 'shieldCapacity', npc_stats )
+	armor     = get_attribute( 'armorHP', npc_stats )
+	structure = get_attribute( 'hp', npc_stats )
 	
-	armor_rep = round( get_attribute( "1009", 1, npc_stats ) * get_attribute( "2635", 0, npc_stats ) / get_attribute( "2633", 1, npc_stats ) * 1000, 1 )
-	shield_rep = round( get_attribute( "639", 1, npc_stats ) * get_attribute( "637", 0, npc_stats ) / get_attribute( "636", 1, npc_stats ) * 1000, 1 )
-	shield_regen = round( 1000 * 2.5 * shield / get_attribute( "479", 1, npc_stats ), 1 )
+	armor_rep = 0
+	shield_rep= 0
+	
+	if has_effect( 'npcBehaviorArmorRepairer', npc_stats ):
+		# New armor rep
+		armor_rep = round( get_attribute( 'entityArmorRepairDelayChanceSmall', npc_stats ) * get_attribute( 'behaviorArmorRepairerAmount', npc_stats ) / get_attribute( 'behaviorArmorRepairerDuration', npc_stats ) * 1000, 1 )
+	elif has_effect( 'armorRepairForEntities', npc_stats ):
+		# old armor rep
+		armor_rep = round( get_attribute( 'entityArmorRepairDelayChance', npc_stats ) * get_attribute( 'entityArmorRepairAmount', npc_stats ) / get_attribute( 'entityArmorRepairDuration', npc_stats ) * 1000, 1 )
+	
+	if has_effect( 'entityShieldBoostingSmall', npc_stats ):
+		# old shield rep
+		shield_rep = round( get_attribute( 'entityShieldBoostDelayChanceSmall', npc_stats ) * get_attribute( 'entityShieldBoostAmount', npc_stats ) / get_attribute( 'entityShieldBoostDuration', npc_stats ) * 1000, 1 )
+	
+	shield_regen = 0
+	if shield > 0:
+		shield_regen = round( 1000 * 2.5 * shield / get_attribute( 'shieldRechargeRate', npc_stats ), 1 )
 
 
 	structure_resist = np.array([structure_em, structure_th, structure_kin, structure_ex])
@@ -173,59 +160,69 @@ def print_damage( npc_stats ):
 	
 	miss_total = 0
 	turr_total = 0
+
+	
 	# Turret damage
+	if has_effect( 'targetAttack', npc_stats ) or has_effect( 'targetDisintegratorAttack', npc_stats ):
+		# em, th, kin, ex
+		turr_damage = np.array([ 
+			get_attribute( 'emDamage', npc_stats ),
+			get_attribute( 'thermalDamage', npc_stats ),
+			get_attribute( 'kineticDamage', npc_stats ),
+			get_attribute( 'explosiveDamage', npc_stats )
+			]) * get_attribute( 'damageMultiplier', npc_stats )
 	
-	# em, th, kin, ex
-	turr_damage = np.array([ 
-		get_attribute( "114", 0, npc_stats ),
-		get_attribute( "118", 0, npc_stats ),
-		get_attribute( "117", 0, npc_stats ),
-		get_attribute( "116", 0, npc_stats )
-		]) * get_attribute( "64", 1, npc_stats )
 	
-	
-	turr_total = sum( turr_damage )
-	turr_dps = round( turr_total / get_attribute( "51", 1, npc_stats ) * 1000 )
-	
-	if turr_total != 0:
-		prnt_distribution = ''
-		if turr_damage[0] > 0:
-			prnt_distribution += 'EM: ' + str( round( 100 * turr_damage[0] / turr_total ) ) + '% '
-		if turr_damage[1] > 0:
-			prnt_distribution += 'Th: ' + str( round( 100 * turr_damage[1] / turr_total ) ) + '% '
-		if turr_damage[2] > 0:
-			prnt_distribution += 'Kin: ' + str( round( 100 * turr_damage[2] / turr_total ) ) + '% '
-		if turr_damage[3] > 0:
-			prnt_distribution += 'Ex: ' + str( round( 100 * turr_damage[3] / turr_total ) ) + '% '
+		turr_total = sum( turr_damage )
 		
-		range =  str( round( get_attribute( "54", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "158", 0, npc_stats ) / 1000, 1 ) ) + ' km'
-		tracking = str( round( 40000 * get_attribute( "160", 0, npc_stats ) / get_attribute( "620", 1, npc_stats ) , 3 ) ) + ' rad/s'
+		if turr_total != 0:
+			turr_dps = round( turr_total / get_attribute( 'speed', npc_stats ) * 1000 )
 		
-		print( 'Turrets: ' )
-		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', turr_dps, prnt_distribution ))
-		print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
-		print( '{:<2} {:<9} {:<10}'.format(' ', 'Tracking:', tracking ))
-	
+			prnt_distribution = ''
+			if turr_damage[0] > 0:
+				prnt_distribution += 'EM: ' + str( round( 100 * turr_damage[0] / turr_total ) ) + '% '
+			if turr_damage[1] > 0:
+				prnt_distribution += 'Th: ' + str( round( 100 * turr_damage[1] / turr_total ) ) + '% '
+			if turr_damage[2] > 0:
+				prnt_distribution += 'Kin: ' + str( round( 100 * turr_damage[2] / turr_total ) ) + '% '
+			if turr_damage[3] > 0:
+				prnt_distribution += 'Ex: ' + str( round( 100 * turr_damage[3] / turr_total ) ) + '% '
+			
+			range =  str( round( get_attribute( 'maxRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'falloff', npc_stats ) / 1000, 1 ) ) + ' km'
+			tracking = str( round( 40000 * get_attribute( 'trackingSpeed', npc_stats )  / get_attribute( 'optimalSigRadius', npc_stats )  , 3 ) ) + ' rad/s'
+			
+			if has_effect( 'targetDisintegratorAttack', npc_stats ):
+				print( 'Disintegrator: ' )
+				bonus = str( 100 * get_attribute( 'damageMultiplierBonusPerCycle', npc_stats ) )
+				print( '{:<2} {:<9} {:<10}'.format(' ', 'Ramps up:', bonus + '% per cycle'))
+			else:
+				print( 'Turrets: ' )
+			print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', turr_dps, prnt_distribution ))
+			print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
+			print( '{:<2} {:<9} {:<10}'.format(' ', 'Tracking:', tracking ))
+
+			
 	# Missile damage
-	if 569 in npc_stats['dogma_effects']:
-		missile_id = round( get_attribute( "507", 0, npc_stats ) )
+	if has_effect( 'missileLaunchingForEntity', npc_stats ):
+		
+		missile_id = round( get_attribute( 'entityMissileTypeID', npc_stats ) )
 		
 		esi_response = esi_calling.call_esi(scope = '/v3/universe/types/{par}', url_parameters = [missile_id], job = 'get missile attributes')[0][0]
 		missile_stats = process_response( esi_response )
 		
-		miss_damage = np.array([ 
-			get_attribute( "114", 0, missile_stats ),
-			get_attribute( "118", 0, missile_stats ),
-			get_attribute( "117", 0, missile_stats ),
-			get_attribute( "116", 0, missile_stats )
-			]) * get_attribute( "212", 1, npc_stats )
+		miss_damage = np.array([
+			get_attribute( 'emDamage', missile_stats ),
+			get_attribute( 'thermalDamage', missile_stats ),
+			get_attribute( 'kineticDamage', missile_stats ),
+			get_attribute( 'explosiveDamage', missile_stats )
+			]) * get_attribute( 'missileDamageMultiplier', npc_stats )
 			
 		miss_total = sum( miss_damage )
-		miss_dps = round( miss_total / get_attribute( "506", 1, npc_stats ) * 1000 )
+		miss_dps = round( miss_total / get_attribute( 'missileLaunchDuration', npc_stats ) * 1000 )
 		
-		range = str( round( get_attribute( "645", 0, npc_stats ) * get_attribute( "37", 0, missile_stats ) * get_attribute( "646", 0, npc_stats ) * get_attribute( "281", 0, missile_stats ) / 1000 /1000, 1 ) ) + ' km'
-		expl_radius = str( round( get_attribute( "654", 0, missile_stats ) * get_attribute( "858", 0, npc_stats ) ) ) + ' m'
-		expl_velocity = str( round( get_attribute( "653", 0, missile_stats ) * get_attribute( "859", 0, npc_stats ) ) ) + ' m/s'
+		range = str( round( get_attribute( 'missileEntityVelocityMultiplier', npc_stats ) * get_attribute( 'maxVelocity', missile_stats ) * get_attribute( 'missileEntityFlightTimeMultiplier', npc_stats ) * get_attribute( 'explosionDelay', missile_stats ) / 1000 /1000, 1 ) ) + ' km'
+		expl_radius = str( round( get_attribute( 'aoeCloudSize', missile_stats ) * get_attribute( 'missileEntityAoeCloudSizeMultiplier', npc_stats  ) ) ) + ' m'
+		expl_velocity = str( round( get_attribute( 'aoeVelocity', missile_stats ) * get_attribute( 'missileEntityAoeVelocityMultiplier', npc_stats ) ) ) + ' m/s'
 		
 		
 		prnt_distribution = ''
@@ -244,6 +241,7 @@ def print_damage( npc_stats ):
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Expl rad:', expl_radius ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Expl vel:', expl_velocity ))
+		print('')
 	
 	# Total damage
 	if miss_total != 0 and turr_total != 0:
@@ -268,106 +266,249 @@ def print_damage( npc_stats ):
 def print_mobility( npc_stats ):
 	print('\n-- Mobility --')
 	
-	max_speed = str( round( get_attribute( "37", 0, npc_stats ) ) ) + ' m/s'
-	cruise_speed = str( round( get_attribute( "508", 0, npc_stats ) ) ) + ' m/s'
+	max_speed = str( round( get_attribute( 'maxVelocity', npc_stats ) ) ) + ' m/s'
+	cruise_speed = str( round( get_attribute( 'entityCruiseSpeed', npc_stats ) ) ) + ' m/s'
 	
 	
-	prop_dist = str( round( get_attribute( "665", 0, npc_stats )/1000 ) ) + ' km'
+	prop_dist = str( round( get_attribute( 'entityChaseMaxDistance', npc_stats )/1000 ) ) + ' km'
 	
-	orbit_dist = str( round( get_attribute( "2786", 0, npc_stats )/1000 ) ) + ' km'
+	orbit_dist = str( round( get_attribute( 'npcBehaviorMaximumCombatOrbitRange', npc_stats )/1000 ) ) + ' km'
+	sig_rad = str( round( get_attribute( 'signatureRadius', npc_stats ) ) ) + ' m'
 	
 	print( '{:<15} {:<10} '.format( 'Cruise speed:', cruise_speed ))
 	print( '{:<15} {:<10} '.format( 'Max speed:', max_speed ))
 	
-	if get_attribute( "1133", 0, npc_stats ) != 0:
-		prop_bloom = str( round( get_attribute( "1133", 0, npc_stats ) * 100 ) ) + '%'
+	if get_attribute( 'entityMaxVelocitySignatureRadiusMultiplier', npc_stats ) != 0:
+		prop_bloom = str( round( get_attribute( 'entityMaxVelocitySignatureRadiusMultiplier', npc_stats ) * 100 ) ) + '%'
 		print( '{:<15} {:<10} '.format( '  MWD bloom:', prop_bloom ))
 	
 	print( '{:<15} {:<10} '.format( 'Max speed dist:', prop_dist ))
 	print( '{:<15} {:<10} '.format( 'Orbit range:', orbit_dist ))
+	print( '{:<15} {:<10} '.format( 'Sig radius:', sig_rad ))
+	print('')
+
+def print_sensor( npc_stats ):
+	print('\n-- Sensors --')
 	
+	get_attribute( 'scanRadarStrength', npc_stats )
+	
+	targ_range = str( round( get_attribute( 'maxTargetRange', npc_stats )/1000 ) ) + ' km'
+	print( '{:<15} {:<10} '.format( 'Range:', targ_range ))
+	
+	max_range = str( round( get_attribute( 'maximumRangeCap', npc_stats )/1000 ) ) + ' km'
+	print( '{:<15} {:<10} '.format( 'Max range:', max_range ))
+	
+	scan_res = str( round( get_attribute( 'scanResolution', npc_stats ) ) )
+	print( '{:<15} {:<10} '.format( 'Scan res:', scan_res ))
+	
+	# Radar, ladar, magnetometric, gravimetric
+	Sensors = [
+		get_attribute( 'scanRadarStrength', npc_stats ),
+		get_attribute( 'scanLadarStrength', npc_stats ),
+		get_attribute( 'scanMagnetometricStrength', npc_stats ),
+		get_attribute( 'scanGravimetricStrength', npc_stats )
+		]
+	if Sensors[0] != 0:
+		print( '{:<15} {:<10} '.format( 'Radar:', Sensors[0] ))
+	if Sensors[1] != 0:
+		print( '{:<15} {:<10} '.format( 'Ladar:', Sensors[1] ))
+	if Sensors[2] != 0:
+		print( '{:<15} {:<10} '.format( 'Magnetometric:', Sensors[2] ))
+	if Sensors[3] != 0:
+		print( '{:<15} {:<10} '.format( 'Gravimetric:', Sensors[3] ))
+		
+
+def print_support( npc_stats ):
+	print( '\n-- SUPPORT --')
+
+	if has_effect( 'npcBehaviorRemoteArmorRepairer', npc_stats ):
+		
+		duration = get_attribute( 'behaviorRemoteArmorRepairDuration', npc_stats )
+		repair = get_attribute( 'behaviorArmorRepairerAmount', npc_stats )
+		
+		if has_attribute( 'armorDamageAmount', npc_stats ):
+			# Some hacky way CCP first implemented repairing NPCs
+			repair = get_attribute( 'armorDamageAmount', npc_stats )
+		
+		rp_str = str( round( repair / duration * 1000 ) ) + ' HP/s'
+		
+		range = str( round( get_attribute( 'behaviorRemoteArmorRepairRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'behaviorRemoteArmorRepairFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
+		
+		print( 'Remote armor repair')
+		print( '{:<2} {:<9} {:<10}'.format('', 'Repair', rp_str ))
+		print( '{:<2} {:<9} {:<10}'.format('', 'Range: ', range ))
+	print('')
+	
+def print_other( npc_stats ):
+	print('\n-- Other --')
+	
+	if get_attribute( 'disallowAssistance', npc_stats ) == 1:
+		print( 'Disallow assistance' )
+	if get_attribute( 'disallowOffensiveModifiers', npc_stats ) == 1:
+		print( 'EWAR immune' )
+	if has_effect( 'npcBehaviorSiege', npc_stats ):
+		print( 'Siege' )
+		print( '  Turret damage modifier:', get_attribute( 'BehaviorSiegeTurretDamageModifier', npc_stats )  )
+		print( '  Missile damage modifier:', get_attribute( 'BehaviorSiegeMissileDamageModifier', npc_stats )  )
 
 def print_ewar( npc_stats ):
 	print('\n-- EWAR --')
 	
 	# Scram
-	if 6745 in npc_stats['dogma_effects']:
+	if has_effect( 'behaviorWarpScramble', npc_stats ):
 		type = 'Scram'
-		modifier = str( round( get_attribute( "2509", 0, npc_stats ) ) )
-		range = str( round( get_attribute( "2507", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		modifier = str( round( get_attribute( 'behaviorWarpScrambleStrength', npc_stats ) ) )
+		range = str( round( get_attribute( 'behaviorWarpScrambleRange', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	# point
-	if 6744 in npc_stats['dogma_effects']:
+	if has_effect( 'behaviorWarpDisrupt', npc_stats ):
 		type = 'Point'
-		modifier = str( round( get_attribute( "2510", 0, npc_stats ) ) )
-		range = str( round( get_attribute( "2504", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		modifier = str( round( get_attribute( 'behaviorWarpDisruptStrength', npc_stats ) ) )
+		range = str( round( get_attribute( 'behaviorWarpDisruptRange', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
+	# Old point
+	if has_effect( 'warpScrambleForEntity', npc_stats ) and get_attribute( "504", 0, npc_stats ) != 0:
+		type = 'Point (o)'
+		modifier = str( round( get_attribute( 'warpScrambleStrength', npc_stats ) ) )
+		range = str( round( get_attribute( 'warpScrambleRange', npc_stats ) / 1000, 1 ) ) + ' km'
+		chance = 'chance: ' + str( round( get_attribute( 'entityWarpScrambleChance', npc_stats ), 1 ) )
+		print( '{:<8} {:<8} {:<10} {:<8}'.format(type, modifier, range, chance))
 	# Web
-	if 2509 in npc_stats['dogma_effects']:
+	if has_effect( 'npcBehaviorWebifier', npc_stats ):
 		type = 'Web'
-		modifier = str( round( get_attribute( "20", 0, npc_stats ) ) ) + '%'
-		range = str( round( get_attribute( "2500", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		modifier = str( round( get_attribute( 'speedFactor', npc_stats ) ) ) + '%'
+		range = str( round( get_attribute( 'behaviorWebifierRange', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
+	# Old web
+	if has_effect( 'modifyTargetSpeed2', npc_stats ) and get_attribute( 'modifyTargetSpeedChance', npc_stats ) != 0:
+		type = 'Web (o)'
+		modifier = str( round( get_attribute( 'speedFactor', npc_stats ) ) ) + '%'
+		range = str( round( get_attribute( 'modifyTargetSpeedRange', npc_stats ) / 1000, 1 ) ) + ' km'
+		chance = 'chance: ' + str( round( get_attribute( 'modifyTargetSpeedChance', npc_stats ), 1 ) )
+		print( '{:<8} {:<8} {:<10} {:<8}'.format(type, modifier, range, chance))
 	# Neut
-	if 6756 in npc_stats['dogma_effects']:
+	if has_effect( 'npcBehaviorEnergyNeutralizer', npc_stats ):
 		type = 'Neut'
-		modifier = str( round( 1000 * get_attribute( "2522", 0, npc_stats ) / get_attribute( "2519", 0, npc_stats ) ) ) + ' GJ/s'
-		range = str( round( get_attribute( "2520", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2521", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		modifier = str( round( 1000 * get_attribute( 'behaviorEnergyNeutralizerDischarge', npc_stats ) / get_attribute( 'behaviorEnergyNeutralizerDuration', npc_stats ) ) ) + ' GJ/s'
+		range = str( round( get_attribute( 'behaviorEnergyNeutralizerRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'behaviorEnergyNeutralizerFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
+		if get_attribute( 'nosOverride', npc_stats ) == 1:
+			type = NOS
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	# Paint
-	if 6754 in npc_stats['dogma_effects']:
+	if has_effect( 'behaviorTargetPainter', npc_stats ):
 		type = 'TP'
-		modifier = str( round( get_attribute( "554", 0, npc_stats ) ) ) + '%'
-		range = str( round( get_attribute( "2524", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2525", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		modifier = str( round( get_attribute( 'signatureRadiusBonus', npc_stats ) ) ) + '%'
+		range = str( round( get_attribute( 'behaviorTargetPainterRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'behaviorTargetPainterFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	# Damp
-	if 6755 in npc_stats['dogma_effects']:
+	if has_effect( 'behaviorSensorDampener', npc_stats ):
 		type = 'Damp'
-		modifier = 'Range: ' + str( round( get_attribute( "309", 0, npc_stats ) ) ) + '%, ' + 'Res:' + str( round( get_attribute( "566", 0, npc_stats ) ) ) + '%'
-		range = str( round( get_attribute( "2528", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2529", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		modifier = 'Range: ' + str( round( get_attribute( 'maxTargetRangeBonus', npc_stats ) ) ) + '%, ' + 'Res:' + str( round( get_attribute ) ) + '%'
+		range = str( round( get_attribute( 'behaviorSensorDampenerRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'behaviorSensorDampenerFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<13} {:<10}'.format(type, modifier, range))
 	# Tracking disruptor
-	if 6747 in npc_stats['dogma_effects'] or 6846 in npc_stats['dogma_effects']:
+	if has_effect( 'npcBehaviorTrackingDisruptor', npc_stats ):
 		type = 'Tracking disruptor'
-		range_loss = round( get_attribute( "349", 0, npc_stats ) )
-		tracking = round( get_attribute( "351", 0, npc_stats ) )
-		if range_loss == tracking:
-			modifier = str(tracking) + '%'
-		else:
-			modifier = 'Tracking: ' + str(tracking) + '%' +'range:' + str(range_loss) + '%'
-		range = str( round( get_attribute( "2516", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2517", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		falloff_loss = round( get_attribute( 'falloffBonus', npc_stats ) )
+		optimal_loss = round( get_attribute( 'maxRangeBonus', npc_stats ) )
+		tracking_loss = round( get_attribute( 'trackingBonus', npc_stats ) ) # This may be wrong
+
+		modifier = 'Optimal:' + str(optimal_loss) + '%' +' falloff:' + str(falloff_loss) + '%' + ' tracking:' + str(tracking_loss) + '%'
+		range = str( round( get_attribute( 'npcTrackingDisruptorRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'npcTrackingDisruptorFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
+		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
+	# Old tracking disruptor
+	if has_effect( 'npcEntityTrackingDisruptor', npc_stats ):
+		type = 'Tracking disruptor (o)'
+		falloff_loss = round( get_attribute( 'falloffBonus', npc_stats ) )
+		optimal_loss = round( get_attribute( 'maxRangeBonus', npc_stats ) )
+		tracking_loss = round( get_attribute( 'trackingSpeedBonus', npc_stats ) )
+
+		modifier = 'Optimal:' + str(optimal_loss) + '%' +' falloff:' + str(falloff_loss) + '%' + ' tracking:' + str(tracking_loss) + '%'
+		range = str( round( get_attribute( 'npcTrackingDisruptorRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'npcTrackingDisruptorFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	# Guidance disruptor
-	if 6746 in npc_stats['dogma_effects']:
+	if has_effect( 'npcBehaviorGuidanceDisruptor', npc_stats ):
 		type = 'Guidance disruptor'
-		modifier = 'UNKNOWN'
-		range = str( round( get_attribute( "2512", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2513", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		velocity_bonus = round( get_attribute( 'missileVelocityBonus', npc_stats ) )
+		modifier = 'velocity:' + str( velocity_bonus ) + '%'
+		range = str( round( get_attribute( 'npcGuidanceDisruptorRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'npcGuidanceDisruptorFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	# ECM
-	if 6757 in npc_stats['dogma_effects']:
+	if has_effect( 'behaviorECM', npc_stats ):
 		type = 'ECM'
 		
-		ladar = get_attribute( "239", 0, npc_stats )
-		gravimetric = get_attribute( "238", 0, npc_stats )
-		magnetometric = get_attribute( "240", 0, npc_stats )
-		radar = get_attribute( "241", 0, npc_stats )
+		ladar = get_attribute( 'scanLadarStrengthBonus', npc_stats )
+		gravimetric = get_attribute( 'scanGravimetricStrengthBonus', npc_stats )
+		magnetometric = get_attribute( 'scanMagnetometricStrengthBonus', npc_stats )
+		radar = get_attribute( 'scanRadarStrengthBonus', npc_stats )
 		
 		if ladar == gravimetric == magnetometric == radar:
 			modifier = radar
 		else:
 			modifier = 'Ladar:', ladar, ' gravimetric:', gravimetric, ' magnetometric:', magnetometric, ' radar:', radar
-		range = str( round( get_attribute( "2532", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2533", 0, npc_stats ) / 1000, 1 ) ) + ' km'
+		range = str( round( get_attribute( 'behaviorECMRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'behaviorECMFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
+	# Old ECM
+	if has_effect( 'entityECMFalloff', npc_stats ):
+		type = 'ECM (o)'
+		
+		ladar = get_attribute( 'scanLadarStrengthBonus', npc_stats )
+		gravimetric = get_attribute( 'scanGravimetricStrengthBonus', npc_stats )
+		magnetometric = get_attribute( 'scanMagnetometricStrengthBonus', npc_stats )
+		radar = get_attribute( 'scanRadarStrengthBonus', npc_stats )
+		
+		if ladar == gravimetric == magnetometric == radar:
+			modifier = radar
+		else:
+			modifier = 'Ladar:', ladar, ' gravimetric:', gravimetric, ' magnetometric:', magnetometric, ' radar:', radar
+		range = str( round( get_attribute( 'ECMRangeOptimal', npc_stats ) / 1000, 1 ) ) + ' km'
+		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
+	
 	print( '' )
 
-def get_attribute( attribute_id, default, npc_stats ):
+
+def get_attribute( attrobute_name, npc_stats ):
+	if not attrobute_name in dogma_attribute_names:
+		print( 'Unknown attribute', attrobute_name )
+		return 0
+	attribute_id = str( dogma_attribute_names[ attrobute_name ] )
+	
 	if attribute_id in npc_stats['dogma_attributes']:
 		return npc_stats['dogma_attributes'][ attribute_id ]
 	else:
-		return default
+		return dogma_attributes[ attribute_id ][ "default_value" ]
 
+def has_attribute( attrobute_name, npc_stats ):
+	if not attrobute_name in dogma_attribute_names:
+		print( 'Unknown attribute', attrobute_name )
+		return False
+	attribute_id = str( dogma_attribute_names[ attrobute_name ] )
+	
+	if attribute_id in npc_stats['dogma_attributes']:
+		return True
+	else:
+		return False
+
+def has_effect( effect_name, npc_stats ):
+	if not effect_name in dogma_effect_names:
+		print( 'Unknown effect', effect_name )
+		# If it is not cached it is not here
+		return False
+	effect_id = dogma_effect_names[ effect_name ]
+	
+	
+	if effect_id in npc_stats[ "dogma_effects" ]:
+		return True
+	else:
+		return False
 
 def process_response( esi_response ):
+	global dogma_attributes
+	global dogma_attribute_names
+	global dogma_effects
+	global dogma_effect_names
+	
+	
 	response_dic = esi_response.json()
 	
 	npc_stats = {}
@@ -377,17 +518,70 @@ def process_response( esi_response ):
 	npc_stats['dogma_attributes'] = {}
 	npc_stats['dogma_effects'] = []
 	
+	
+	# Dogma attributes
 	if not 'dogma_attributes' in response_dic:
 		print('Type ID',npc_stats['type_id'],'has no defined attributes')
-		return npc_stats
 	elif len(response_dic['dogma_attributes']) == 0:
 		print('Type ID',npc_stats['type_id'],'has zero attributes')
-		return npc_stats
-	
-	if 'dogma_attributes' in response_dic:
+	else:		
+		new_attributes = []
+		
+		for attribute_dic in response_dic['dogma_attributes']:
+			dogma_id = attribute_dic["attribute_id"]
+			if not str(dogma_id) in dogma_attributes:
+				#Find what this ID is for
+				new_attributes.append(dogma_id)
+		
+		if len(new_attributes) != 0:
+			esi_response_arrays = esi_calling.call_esi(scope = '/v1/dogma/attributes/{par}', url_parameters = new_attributes, job = 'get info on dogma attribute')
+				
+			for array in esi_response_arrays:
+				response_json = array[0].json()
+				if 'attribute_id' in response_json:
+					dogma_attributes[str(response_json['attribute_id'])] = response_json
+					dogma_attribute_names[ response_json['name'] ] = response_json['attribute_id']
+			#Save the ID list
+			with gzip.GzipFile('dogma_attributes.gz', 'w') as outfile:
+				outfile.write(json.dumps(dogma_attributes, indent=2).encode('utf-8'))
+			with gzip.GzipFile('dogma_attribute_names.gz', 'w') as outfile:
+				outfile.write(json.dumps(dogma_attribute_names, indent=2).encode('utf-8'))
+		
 		for attribute_dic in response_dic['dogma_attributes']:
 			npc_stats['dogma_attributes'][ str( attribute_dic["attribute_id"] ) ] = attribute_dic["value"]
-	if 'dogma_effects' in response_dic:
+	
+	
+	# Dogma effects
+	if not 'dogma_effects' in response_dic:
+		print('Type ID',npc_stats['type_id'],'has no defined effects')
+	elif len(response_dic['dogma_effects']) == 0:
+		print('Type ID',npc_stats['type_id'],'has zero effects')
+	else:
+		
+		new_effects = []
+		
+		for effect_dic in response_dic['dogma_effects']:
+			dogma_id = effect_dic['effect_id']
+			if not str(dogma_id) in dogma_effects:
+				#Find what this ID is for
+				new_effects.append(dogma_id)
+		
+		if len(new_effects) != 0:
+			esi_response_arrays = esi_calling.call_esi(scope = '/v2/dogma/effects/{par}', url_parameters = new_effects, job = 'get info on dogma attribute')
+				
+			for array in esi_response_arrays:
+				response_json = array[0].json()
+				if 'effect_id' in response_json:
+					dogma_effects[str(response_json['effect_id'])] = response_json
+					dogma_effect_names[ response_json['name'] ] = response_json['effect_id']
+				else:
+					print( "Something wrong: ", response_json )
+			#Save the ID list
+			with gzip.GzipFile('dogma_effects.gz', 'w') as outfile:
+				outfile.write(json.dumps(dogma_effects, indent=2).encode('utf-8'))
+			with gzip.GzipFile('dogma_effect_names.gz', 'w') as outfile:
+				outfile.write(json.dumps(dogma_effect_names, indent=2).encode('utf-8'))
+
 		for effect_dic in response_dic['dogma_effects']:
 			npc_stats['dogma_effects'].append( effect_dic["effect_id"] )
 	
@@ -418,21 +612,58 @@ kin = np.array([0, 0, 1, 0])
 ex = np.array([0, 0, 0, 1])
 
 
+try:
+	#Load cached dogma attribute ID info
+	with gzip.GzipFile('dogma_attributes.gz', 'r') as fin:
+		dogma_attributes = json.loads(fin.read().decode('utf-8'))
+except FileNotFoundError:
+	#No file found. Start from scratch
+    dogma_attributes = {}
+
+try:
+	#Load cached dogma attribute ID-name info
+	with gzip.GzipFile('dogma_attribute_names.gz', 'r') as fin:
+		dogma_attribute_names = json.loads(fin.read().decode('utf-8'))
+except FileNotFoundError:
+	#No file found. Start from scratch
+    dogma_attribute_names = {}
+
+try:
+	#Load cached dogma effect ID info
+	with gzip.GzipFile('dogma_effects.gz', 'r') as fin:
+		dogma_effects = json.loads(fin.read().decode('utf-8'))
+except FileNotFoundError:
+	#No file found. Start from scratch
+    dogma_effects = {}
+
+try:
+	#Load cached dogma effect ID-name info
+	with gzip.GzipFile('dogma_effect_names.gz', 'r') as fin:
+		dogma_effect_names = json.loads(fin.read().decode('utf-8'))
+except FileNotFoundError:
+	#No file found. Start from scratch
+    dogma_effect_names = {}
+
 
 while True:
 	#Call ESI
-	type_id = input("Give type ID: ")
+	type_id = input("\n\nGive type ID: ")
 	
 	esi_response = esi_calling.call_esi(scope = '/v3/universe/types/{par}', url_parameters = [type_id], job = 'get type ID attributes')[0][0]
 
 	
 	if not esi_response.status_code in [400, 404]:
+		print('')
+		print('*************************************')
 		npc_stats = process_response( esi_response )
 		print_general( npc_stats )
 		print_tank( npc_stats )
 		print_damage( npc_stats )
+		print_support( npc_stats )
 		print_ewar( npc_stats )
 		print_mobility( npc_stats )
+		print_sensor( npc_stats )
+		print_other( npc_stats )
 	else:
 		print(esi_response.status_code, '- invalid ID')
 	
