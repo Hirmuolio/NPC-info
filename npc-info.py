@@ -44,16 +44,39 @@ def print_tank( npc_stats ):
 	if has_effect( 'npcBehaviorArmorRepairer', npc_stats ):
 		# New armor rep
 		armor_rep = round( get_attribute( 'entityArmorRepairDelayChanceSmall', npc_stats ) * get_attribute( 'behaviorArmorRepairerAmount', npc_stats ) / get_attribute( 'behaviorArmorRepairerDuration', npc_stats ) * 1000, 1 )
-	elif has_effect( 'armorRepairForEntities', npc_stats ):
+	elif has_effect( 'armorRepairForEntities', npc_stats ) or has_effect( 'entityArmorRepairingLarge', npc_stats ) or has_effect( 'entityArmorRepairingSmall', npc_stats ) or has_effect( 'entityArmorRepairingMedium', npc_stats ):
 		# old armor rep
+		if has_attribute( 'entityArmorRepairDelayChanceLarge', npc_stats ):
+			chance = 1 - get_attribute( 'entityArmorRepairDelayChanceLarge', npc_stats )
+		elif has_attribute( 'entityArmorRepairDelayChanceSmall', npc_stats ):
+			chance = 1 - get_attribute( 'entityArmorRepairDelayChanceSmall', npc_stats )
+		elif has_attribute( 'entityArmorRepairDelayChanceMedium', npc_stats ):
+			chance = 1 - get_attribute( 'entityArmorRepairDelayChanceMedium', npc_stats )
+		else:
+			chance = 1 - get_attribute( 'entityArmorRepairDelayChance', npc_stats )
+		if get_attribute( 'entityArmorRepairDuration', npc_stats ) != 0:	#Some sleepers do not have this
+			armor_rep = round( chance * get_attribute( 'entityArmorRepairAmount', npc_stats ) / get_attribute( 'entityArmorRepairDuration', npc_stats ) * 1000, 1 )
+		else:
+			armor_rep = 0
+	elif has_effect( 'entityArmorRepairingLarge', npc_stats ):
+		# Old armor rep
 		armor_rep = round( get_attribute( 'entityArmorRepairDelayChance', npc_stats ) * get_attribute( 'entityArmorRepairAmount', npc_stats ) / get_attribute( 'entityArmorRepairDuration', npc_stats ) * 1000, 1 )
 	
-	if has_effect( 'entityShieldBoostingSmall', npc_stats ):
-		# old shield rep
-		shield_rep = round( get_attribute( 'entityShieldBoostDelayChanceSmall', npc_stats ) * get_attribute( 'entityShieldBoostAmount', npc_stats ) / get_attribute( 'entityShieldBoostDuration', npc_stats ) * 1000, 1 )
+	if has_effect( 'entityShieldBoostingSmall', npc_stats ) or has_effect( 'entityShieldBoostingMedium', npc_stats ) or has_effect( 'entityShieldBoostingLarge', npc_stats ):
+		# old shield rep	
+		if has_attribute( 'entityShieldBoostDelayChanceSmall', npc_stats ):
+			chance = 1 - get_attribute( 'entityShieldBoostDelayChanceSmall', npc_stats )
+		elif has_attribute( 'entityShieldBoostDelayChanceMedium', npc_stats ):
+			chance = 1 - get_attribute( 'entityShieldBoostDelayChanceMedium', npc_stats )
+		elif has_attribute( 'entityShieldBoostDelayChanceLarge', npc_stats ):
+			chance = 1 - get_attribute( 'entityShieldBoostDelayChanceLarge', npc_stats )
+		else:
+			chance = 1 - get_attribute( 'entityShieldBoostDelayChance', npc_stats )
+				
+		shield_rep = round( chance * get_attribute( 'entityShieldBoostAmount', npc_stats ) / get_attribute( 'entityShieldBoostDuration', npc_stats ) * 1000, 1 )
 	
 	shield_regen = 0
-	if shield > 0:
+	if shield > 0 and get_attribute( 'shieldRechargeRate', npc_stats ) != 0:
 		shield_regen = round( 1000 * 2.5 * shield / get_attribute( 'shieldRechargeRate', npc_stats ), 1 )
 
 
@@ -241,7 +264,6 @@ def print_damage( npc_stats ):
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Expl rad:', expl_radius ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Expl vel:', expl_velocity ))
-		print('')
 	
 	# Total damage
 	if miss_total != 0 and turr_total != 0:
@@ -262,6 +284,37 @@ def print_damage( npc_stats ):
 		
 		print( 'Total: ' )
 		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', total_dps, prnt_distribution ))
+	if has_effect( 'entitySuperWeapon', npc_stats ):
+		
+		super_damage = np.array([ 
+			get_attribute( 'entitySuperWeaponEmDamage', npc_stats ),
+			get_attribute( 'entitySuperWeaponThermalDamage', npc_stats ),
+			get_attribute( 'entitySuperWeaponKineticDamage', npc_stats ),
+			get_attribute( 'entitySuperWeaponExplosiveDamage', npc_stats )
+			])
+		super_total = sum(super_damage)
+		
+		prnt_distribution = ''
+		if super_damage[0] > 0:
+			prnt_distribution += 'EM: ' + str( round( 100 * super_damage[0] / super_total ) ) + '% '
+		if super_damage[1] > 0:
+			prnt_distribution += 'Th: ' + str( round( 100 * super_damage[1] / super_total ) ) + '% '
+		if super_damage[2] > 0:
+			prnt_distribution += 'Kin: ' + str( round( 100 * super_damage[2] / super_total ) ) + '% '
+		if super_damage[3] > 0:
+			prnt_distribution += 'Ex: ' + str( round( 100 * super_damage[3] / super_total ) ) + '% '
+			
+		super_duration = str( round( get_attribute( 'entitySuperWeaponDuration', npc_stats ) / 1000, 1 ) ) + ' s'
+		
+		range =  str( round( get_attribute( 'entitySuperWeaponMaxRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'entitySuperWeaponFallOff', npc_stats ) / 1000, 1 ) ) + ' km'
+		tracking = str( round( 40000 * get_attribute( 'entitySuperWeaponTrackingSpeed', npc_stats )  / get_attribute( 'entitySuperWeaponOptimalSignatureRadius', npc_stats )  , 3 ) ) + ' rad/s'
+		
+		print( 'Superweapon: ' )
+		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'Damage:', super_total, prnt_distribution ))
+		print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
+		print( '{:<2} {:<9} {:<10}'.format(' ', 'Tracking:', tracking ))
+		print( '{:<2} {:<9} {:<10}'.format(' ', 'Duration:', super_duration ))
+	print('')
 
 def print_mobility( npc_stats ):
 	print('\n-- Mobility --')
@@ -337,6 +390,34 @@ def print_support( npc_stats ):
 		print( 'Remote armor repair')
 		print( '{:<2} {:<9} {:<10}'.format('', 'Repair', rp_str ))
 		print( '{:<2} {:<9} {:<10}'.format('', 'Range: ', range ))
+	
+	if has_effect( 'NPCRemoteArmorRepair', npc_stats ):
+		# Old sleeper armor rep
+		
+		duration = get_attribute( 'npcRemoteArmorRepairDuration', npc_stats )
+		repair = get_attribute( 'npcRemoteArmorRepairAmount', npc_stats )
+		
+		rp_str = str( round( repair / duration * 1000 ) ) + ' HP/s'
+		
+		range = '?'
+		
+		print( 'Remote armor repair')
+		print( '{:<2} {:<9} {:<10}'.format('', 'Repair', rp_str ))
+		print( '{:<2} {:<9} {:<10}'.format('', 'Range: ', range ))
+		
+	if has_effect( 'npcBehaviorRemoteShieldBooster',npc_stats ):
+		duration = get_attribute( 'behaviorRemoteShieldBoostDuration', npc_stats )
+		repair = get_attribute( 'shieldBonus', npc_stats )
+		
+		rp_str = str( round( repair / duration * 1000 ) ) + ' HP/s'
+		
+		range = str( round( get_attribute( 'behaviorRemoteShieldBoostRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'behaviorRemoteShieldBoostFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
+		
+		print( 'Remote shield repair')
+		print( '{:<2} {:<9} {:<10}'.format('', 'Repair', rp_str ))
+		print( '{:<2} {:<9} {:<10}'.format('', 'Range: ', range ))
+		
+	
 	print('')
 	
 def print_other( npc_stats ):
@@ -346,6 +427,10 @@ def print_other( npc_stats ):
 		print( 'Disallow assistance' )
 	if get_attribute( 'disallowOffensiveModifiers', npc_stats ) == 1:
 		print( 'EWAR immune' )
+	if get_attribute( 'energyWarfareResistance', npc_stats ) != 0:
+		neut_res = get_attribute( 'energyWarfareResistance', npc_stats )
+		print( 'Neut resist:', str(neut_res*100 ) + '%' )
+	
 	if has_effect( 'npcBehaviorSiege', npc_stats ):
 		print( 'Siege' )
 		print( '  Turret damage modifier:', get_attribute( 'BehaviorSiegeTurretDamageModifier', npc_stats )  )
@@ -366,8 +451,8 @@ def print_ewar( npc_stats ):
 		modifier = str( round( get_attribute( 'behaviorWarpDisruptStrength', npc_stats ) ) )
 		range = str( round( get_attribute( 'behaviorWarpDisruptRange', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
-	# Old point
-	if has_effect( 'warpScrambleForEntity', npc_stats ) and get_attribute( "504", 0, npc_stats ) != 0:
+	# Old point entityWarpScrambleChance
+	if has_effect( 'warpScrambleForEntity', npc_stats ) and get_attribute( 'entityWarpScrambleChance', npc_stats ) != 0:
 		type = 'Point (o)'
 		modifier = str( round( get_attribute( 'warpScrambleStrength', npc_stats ) ) )
 		range = str( round( get_attribute( 'warpScrambleRange', npc_stats ) / 1000, 1 ) ) + ' km'
@@ -389,11 +474,20 @@ def print_ewar( npc_stats ):
 	# Neut
 	if has_effect( 'npcBehaviorEnergyNeutralizer', npc_stats ):
 		type = 'Neut'
-		modifier = str( round( 1000 * get_attribute( 'behaviorEnergyNeutralizerDischarge', npc_stats ) / get_attribute( 'behaviorEnergyNeutralizerDuration', npc_stats ) ) ) + ' GJ/s'
+		modifier = str( round( 1000 * get_attribute( 'energyNeutralizerAmount', npc_stats ) / get_attribute( 'behaviorEnergyNeutralizerDuration', npc_stats ) ) ) + ' GJ/s'
 		range = str( round( get_attribute( 'behaviorEnergyNeutralizerRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'behaviorEnergyNeutralizerFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
 		if get_attribute( 'nosOverride', npc_stats ) == 1:
-			type = NOS
+			type = 'NOS'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
+	# Old Neut
+	if has_effect( 'entityEnergyNeutralizerFalloff', npc_stats ) and get_attribute( 'energyNeutralizerEntityChance', npc_stats ) != 0:
+		chance = 'chance: ' + str( round( get_attribute( 'energyNeutralizerEntityChance', npc_stats ), 1 ) )
+		type = 'Neut (o)'
+		modifier = str( round( 1000 * get_attribute( 'energyNeutralizerAmount', npc_stats ) / get_attribute( 'energyNeutralizerDuration', npc_stats ) ) ) + ' GJ/s'
+		range = str( round( get_attribute( 'energyNeutralizerRangeOptimal', npc_stats ) / 1000, 1 ) ) + ' km'
+		if get_attribute( 'nosOverride', npc_stats ) == 1:
+			type = 'NOS'
+		print( '{:<8} {:<8} {:<10} {:<8}'.format(type, modifier, range, chance))
 	# Paint
 	if has_effect( 'behaviorTargetPainter', npc_stats ):
 		type = 'TP'
@@ -403,7 +497,7 @@ def print_ewar( npc_stats ):
 	# Damp
 	if has_effect( 'behaviorSensorDampener', npc_stats ):
 		type = 'Damp'
-		modifier = 'Range: ' + str( round( get_attribute( 'maxTargetRangeBonus', npc_stats ) ) ) + '%, ' + 'Res:' + str( round( get_attribute ) ) + '%'
+		modifier = 'Range: ' + str( round( get_attribute( 'maxTargetRangeBonus', npc_stats ) ) ) + '%, ' + 'Res:' + str( round( get_attribute( 'scanResolutionBonus', npc_stats ) ) ) + '%'
 		range = str( round( get_attribute( 'behaviorSensorDampenerRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'behaviorSensorDampenerFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<13} {:<10}'.format(type, modifier, range))
 	# Tracking disruptor
@@ -411,7 +505,7 @@ def print_ewar( npc_stats ):
 		type = 'Tracking disruptor'
 		falloff_loss = round( get_attribute( 'falloffBonus', npc_stats ) )
 		optimal_loss = round( get_attribute( 'maxRangeBonus', npc_stats ) )
-		tracking_loss = round( get_attribute( 'trackingBonus', npc_stats ) ) # This may be wrong
+		tracking_loss = round( get_attribute( 'trackingSpeedBonus', npc_stats ) ) # This may be wrong
 
 		modifier = 'Optimal:' + str(optimal_loss) + '%' +' falloff:' + str(falloff_loss) + '%' + ' tracking:' + str(tracking_loss) + '%'
 		range = str( round( get_attribute( 'npcTrackingDisruptorRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'npcTrackingDisruptorFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
@@ -429,8 +523,12 @@ def print_ewar( npc_stats ):
 	# Guidance disruptor
 	if has_effect( 'npcBehaviorGuidanceDisruptor', npc_stats ):
 		type = 'Guidance disruptor'
+		
 		velocity_bonus = round( get_attribute( 'missileVelocityBonus', npc_stats ) )
-		modifier = 'velocity:' + str( velocity_bonus ) + '%'
+		expl_velocity_bonus = round( get_attribute( 'aoeVelocityBonus', npc_stats ) )
+		flytime_bonus = round( get_attribute( 'explosionDelayBonus', npc_stats ) )
+		
+		modifier = 'velocity:' + str( velocity_bonus ) + '% expl velocity:' + str( expl_velocity_bonus ) + '% flight time:' + str( flytime_bonus ) + '%'
 		range = str( round( get_attribute( 'npcGuidanceDisruptorRange', npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( 'npcGuidanceDisruptorFalloff', npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	# ECM
