@@ -429,7 +429,7 @@ def print_other( npc_stats ):
 		print( 'EWAR immune' )
 	if get_attribute( 'energyWarfareResistance', npc_stats ) != 0:
 		neut_res = get_attribute( 'energyWarfareResistance', npc_stats )
-		print( 'Neut resist:', str(neut_res*100 ) + '%' )
+		print( 'Neut resist:', str(neut_res ) )
 	
 	if has_effect( 'npcBehaviorSiege', npc_stats ):
 		print( 'Siege' )
