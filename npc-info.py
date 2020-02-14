@@ -199,7 +199,7 @@ def print_damage( npc_stats ):
 			prnt_distribution += 'Ex: ' + str( round( 100 * turr_damage[3] / turr_total ) ) + '% '
 		
 		range =  str( round( get_attribute( "54", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "158", 0, npc_stats ) / 1000, 1 ) ) + ' km'
-		tracking = str( round( get_attribute( "54", 0, npc_stats ) / get_attribute( "620", 1, npc_stats ) , 3 ) ) + ' rad/s'
+		tracking = str( round( 40000 * get_attribute( "160", 0, npc_stats ) / get_attribute( "620", 1, npc_stats ) , 3 ) ) + ' rad/s'
 		
 		print( 'Turrets: ' )
 		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', turr_dps, prnt_distribution ))
@@ -327,22 +327,36 @@ def print_ewar( npc_stats ):
 		range = str( round( get_attribute( "2528", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2529", 0, npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<13} {:<10}'.format(type, modifier, range))
 	# Tracking disruptor
-	if 6747 in npc_stats['dogma_effects']:
-		type = 'TD'
-		modifier = 'TODO'
-		range = 'TODO'
+	if 6747 in npc_stats['dogma_effects'] or 6846 in npc_stats['dogma_effects']:
+		type = 'Tracking disruptor'
+		range_loss = round( get_attribute( "349", 0, npc_stats ) )
+		tracking = round( get_attribute( "351", 0, npc_stats ) )
+		if range_loss == tracking:
+			modifier = str(tracking) + '%'
+		else:
+			modifier = 'Tracking: ' + str(tracking) + '%' +'range:' + str(range_loss) + '%'
+		range = str( round( get_attribute( "2516", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2517", 0, npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	# Guidance disruptor
 	if 6746 in npc_stats['dogma_effects']:
-		type = 'GD'
-		modifier = 'TODO'
-		range = 'TODO'
+		type = 'Guidance disruptor'
+		modifier = 'UNKNOWN'
+		range = str( round( get_attribute( "2512", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2513", 0, npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	# ECM
-	if 6747 in npc_stats['dogma_effects']:
-		type = 'GD'
-		modifier = 'TODO'
-		range = 'TODO'
+	if 6757 in npc_stats['dogma_effects']:
+		type = 'ECM'
+		
+		ladar = get_attribute( "239", 0, npc_stats )
+		gravimetric = get_attribute( "238", 0, npc_stats )
+		magnetometric = get_attribute( "240", 0, npc_stats )
+		radar = get_attribute( "241", 0, npc_stats )
+		
+		if ladar == gravimetric == magnetometric == radar:
+			modifier = radar
+		else:
+			modifier = 'Ladar:', ladar, ' gravimetric:', gravimetric, ' magnetometric:', magnetometric, ' radar:', radar
+		range = str( round( get_attribute( "2532", 0, npc_stats ) / 1000, 1 ) ) + ' + ' + str( round( get_attribute( "2533", 0, npc_stats ) / 1000, 1 ) ) + ' km'
 		print( '{:<8} {:<8} {:<10}'.format(type, modifier, range))
 	print( '' )
 
@@ -370,10 +384,12 @@ def process_response( esi_response ):
 		print('Type ID',npc_stats['type_id'],'has zero attributes')
 		return npc_stats
 	
-	for attribute_dic in response_dic['dogma_attributes']:
-		npc_stats['dogma_attributes'][ str( attribute_dic["attribute_id"] ) ] = attribute_dic["value"]
-	for effect_dic in response_dic['dogma_effects']:
-		npc_stats['dogma_effects'].append( effect_dic["effect_id"] )
+	if 'dogma_attributes' in response_dic:
+		for attribute_dic in response_dic['dogma_attributes']:
+			npc_stats['dogma_attributes'][ str( attribute_dic["attribute_id"] ) ] = attribute_dic["value"]
+	if 'dogma_effects' in response_dic:
+		for effect_dic in response_dic['dogma_effects']:
+			npc_stats['dogma_effects'].append( effect_dic["effect_id"] )
 	
 	return npc_stats
 
