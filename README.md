@@ -2,15 +2,17 @@
 Get info on NPC entity.
 
 Diplays the following:
-* EHP and repair amount and also tells how good different ammo are.
+* HP, EHP and repair amount. Shield repair is given in "active repair"+"peak passive regen"
+* Relative effectiveness of different damage and ammo types.
 * DPS, range, falloff, missile explosion velocity and missile explosion radius.
-* EWAR details
-* Speed info
+* EWAR details. EWAR effects with "(o)" use old mechanics while the ones without "(o)" use new mechanics. Not big practical difference.
+* When the rat is shown to have "scram" it means actual scram that shuts down MWD and MJD. "point" is normal warp disruptor.
+* Speed details.
+* Various other attributes.
+* The actual meaning of many of the attributes are not known.
 
 You give the script the type ID of the rat. 
 The script gets the stats of the rat fom ESI.
-
-Some of the attributes are different on old and new rats. This script is based on new rats so it may not show all info on old rats. Some rats also have nonsensical/missing stats (bugs?).
 
 Requires:
 * Python 3
