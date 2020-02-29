@@ -16,5 +16,5 @@ The script gets the stats of the rat fom ESI.
 
 Requires:
 * Python 3
-* Requests: http://docs.python-requests.org/en/master/
+* Requests futures: https://github.com/ross/requests-futures
 * Numpy: http://www.numpy.org/
