@@ -427,8 +427,8 @@ def print_other( npc_stats ):
 		print( 'Disallow assistance' )
 	if get_attribute( 'disallowOffensiveModifiers', npc_stats ) == 1:
 		print( 'EWAR immune' )
-	if get_attribute( 'energyWarfareResistance', npc_stats ) != 0:
-		neut_res = get_attribute( 'energyWarfareResistance', npc_stats )
+	if get_attribute( 'energyWarfareResistance', npc_stats ) != 1:
+		neut_res = 1 - get_attribute( 'energyWarfareResistance', npc_stats )
 		print( 'Neut resist:', str(neut_res ) )
 	
 	if has_effect( 'npcBehaviorSiege', npc_stats ):
