@@ -34,8 +34,8 @@ def print_tank( npc_stats ):
 	armor_em  = get_attribute( 'armorEmDamageResonance', npc_stats )
 	
 	
-	shield    = get_attribute( 'shieldCapacity', npc_stats )
-	armor     = get_attribute( 'armorHP', npc_stats )
+	shield	= get_attribute( 'shieldCapacity', npc_stats )
+	armor	 = get_attribute( 'armorHP', npc_stats )
 	structure = get_attribute( 'hp', npc_stats )
 	
 	armor_rep = 0
@@ -332,7 +332,7 @@ def print_mobility( npc_stats ):
 	print( '{:<15} {:<10} '.format( 'Max speed:', max_speed ))
 	
 	if get_attribute( 'entityMaxVelocitySignatureRadiusMultiplier', npc_stats ) != 0:
-		prop_bloom = str( round( get_attribute( 'entityMaxVelocitySignatureRadiusMultiplier', npc_stats ) * 100 ) ) + '%'
+		prop_bloom = str( get_attribute( 'entityMaxVelocitySignatureRadiusMultiplier', npc_stats ) )
 		print( '{:<15} {:<10} '.format( '  MWD bloom:', prop_bloom ))
 	
 	print( '{:<15} {:<10} '.format( 'Max speed dist:', prop_dist ))
@@ -433,8 +433,21 @@ def print_other( npc_stats ):
 	
 	if has_effect( 'npcBehaviorSiege', npc_stats ):
 		print( 'Siege' )
+		
 		print( '  Turret damage modifier:', get_attribute( 'BehaviorSiegeTurretDamageModifier', npc_stats )  )
 		print( '  Missile damage modifier:', get_attribute( 'BehaviorSiegeMissileDamageModifier', npc_stats )  )
+		print( '  Remote repair impedance:', get_attribute( 'BehaviorSiegeRemoteRepairImpedanceModifier', npc_stats )  )
+		print( '  Remote assistance impedance:', get_attribute( 'BehaviorSiegeRemoteAssistanceImpedanceModifier', npc_stats )  )
+		print( '  Remote dampener resistance:', get_attribute( 'BehaviorSiegeSensorDampenerResistanceModifier', npc_stats )  )
+		print( '  Remote weapon disruptor resistance:', get_attribute( 'BehaviorSiegeWeaponDisruptionResistanceModifier', npc_stats )  )
+		print( '  ECM resistance:', get_attribute( 'BehaviorSiegeECMResistanceModifier', npc_stats )  )
+		print( '  Velocity modifier:', get_attribute( 'BehaviorSiegeMaxVelocityModifier', npc_stats )  )
+		print( '  Self warp disrupt:', get_attribute( 'BehaviorSiegeWarpScrambleStatusModifier', npc_stats )  )
+		print( '  Disallow tethering:', get_attribute( 'BehaviorSiegeDisallowTetheringModifier', npc_stats )  )
+		print( '  Mass modifier:', get_attribute( 'BehaviorSiegeMassModifier', npc_stats )  )
+		print( '  Local rep modifier:', get_attribute( 'BehaviorSiegeLocalLogisticsAmountModifier', npc_stats )  )
+		print( '  Local rep duration modifier:', get_attribute( 'BehaviorSiegeLocalLogisticsDurationModifier', npc_stats )  )
+		
 
 def print_ewar( npc_stats ):
 	print('\n-- EWAR --')
@@ -716,7 +729,7 @@ try:
 		dogma_attributes = json.loads(fin.read().decode('utf-8'))
 except FileNotFoundError:
 	#No file found. Start from scratch
-    dogma_attributes = {}
+	dogma_attributes = {}
 
 try:
 	#Load cached dogma attribute ID-name info
@@ -724,7 +737,7 @@ try:
 		dogma_attribute_names = json.loads(fin.read().decode('utf-8'))
 except FileNotFoundError:
 	#No file found. Start from scratch
-    dogma_attribute_names = {}
+	dogma_attribute_names = {}
 
 try:
 	#Load cached dogma effect ID info
@@ -732,7 +745,7 @@ try:
 		dogma_effects = json.loads(fin.read().decode('utf-8'))
 except FileNotFoundError:
 	#No file found. Start from scratch
-    dogma_effects = {}
+	dogma_effects = {}
 
 try:
 	#Load cached dogma effect ID-name info
@@ -740,7 +753,7 @@ try:
 		dogma_effect_names = json.loads(fin.read().decode('utf-8'))
 except FileNotFoundError:
 	#No file found. Start from scratch
-    dogma_effect_names = {}
+	dogma_effect_names = {}
 
 
 while True:
