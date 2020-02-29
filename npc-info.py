@@ -447,6 +447,9 @@ def print_other( npc_stats ):
 		print( '  Mass modifier:', get_attribute( 'BehaviorSiegeMassModifier', npc_stats )  )
 		print( '  Local rep modifier:', get_attribute( 'BehaviorSiegeLocalLogisticsAmountModifier', npc_stats )  )
 		print( '  Local rep duration modifier:', get_attribute( 'BehaviorSiegeLocalLogisticsDurationModifier', npc_stats )  )
+	
+	if get_attribute( 'AI_IgnoreDronesBelowSignatureRadius', npc_stats) > 0:
+		print( 'Ignore drones below', get_attribute( 'AI_IgnoreDronesBelowSignatureRadius', npc_stats), 'm' )
 		
 
 def print_ewar( npc_stats ):
