@@ -217,7 +217,9 @@ def print_damage( npc_stats ):
 			if has_effect( 'targetDisintegratorAttack', npc_stats ):
 				print( 'Disintegrator: ' )
 				bonus = str( 100 * get_attribute( 'damageMultiplierBonusPerCycle', npc_stats ) )
-				print( '{:<2} {:<9} {:<10}'.format(' ', 'Ramps up:', bonus + '% per cycle'))
+				max_bonus = str( 100 * get_attribute( 'damageMultiplierBonusMax', npc_stats ) )
+				
+				print( '{:<2} {:<9} {:<10}'.format(' ', 'Ramps up:', bonus + '% per cycle. Max: ' + max_bonus + '%'))
 			else:
 				print( 'Turrets: ' )
 			print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', turr_dps, prnt_distribution ))
