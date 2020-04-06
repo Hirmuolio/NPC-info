@@ -58,11 +58,11 @@ def print_tank( npc_stats ):
 			armor_rep = round( chance * get_attribute( 'entityArmorRepairAmount', npc_stats ) / get_attribute( 'entityArmorRepairDuration', npc_stats ) * 1000, 1 )
 		else:
 			armor_rep = 0
-	elif has_effect( 'entityArmorRepairingLarge', npc_stats ):
-		# Old armor rep
-		armor_rep = round( get_attribute( 'entityArmorRepairDelayChance', npc_stats ) * get_attribute( 'entityArmorRepairAmount', npc_stats ) / get_attribute( 'entityArmorRepairDuration', npc_stats ) * 1000, 1 )
 	
-	if has_effect( 'entityShieldBoostingSmall', npc_stats ) or has_effect( 'entityShieldBoostingMedium', npc_stats ) or has_effect( 'entityShieldBoostingLarge', npc_stats ):
+	if has_effect( 'npcBehaviorShieldBooster', npc_stats):
+		# New shield booster
+		shield_rep = round( get_attribute( 'BehaviorShieldBoosterAmount', npc_stats ) / get_attribute( 'BehaviorShieldBoosterDuration', npc_stats ) * 1000, 1 )
+	elif has_effect( 'entityShieldBoostingSmall', npc_stats ) or has_effect( 'entityShieldBoostingMedium', npc_stats ) or has_effect( 'entityShieldBoostingLarge', npc_stats ):
 		# old shield rep	
 		if has_attribute( 'entityShieldBoostDelayChanceSmall', npc_stats ):
 			chance = 1 - get_attribute( 'entityShieldBoostDelayChanceSmall', npc_stats )
