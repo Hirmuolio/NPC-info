@@ -14,6 +14,10 @@ Get info on NPC entity.
 You give the script the type ID of the rat. 
 The script gets the stats of the rat fom ESI.
 
+Sample output:
+
+![Image description](sample.png)
+
 Requires:
 * Python 3
 * Requests futures: https://github.com/ross/requests-futures
