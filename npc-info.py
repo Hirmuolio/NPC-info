@@ -452,6 +452,9 @@ def print_other( npc_stats ):
 	
 	if get_attribute( 'AI_IgnoreDronesBelowSignatureRadius', npc_stats) > 0:
 		print( 'Ignore drones below', get_attribute( 'AI_IgnoreDronesBelowSignatureRadius', npc_stats), 'm' )
+	
+	if get_attribute( 'entityFactionLoss', npc_stats) > 0:
+		print( 'Standing loss', round(100*get_attribute( 'entityFactionLoss', npc_stats), 3), '%' )
 		
 
 def print_ewar( npc_stats ):
