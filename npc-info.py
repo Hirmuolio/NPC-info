@@ -199,7 +199,7 @@ def print_damage( npc_stats ):
 		turr_total = sum( turr_damage )
 		
 		if turr_total != 0:
-			turr_dps = round( turr_total / get_attribute( 'speed', npc_stats ) * 1000 )
+			turr_dps = turr_damage * ( 1000 / get_attribute( 'speed', npc_stats ) )
 		
 			prnt_distribution = ''
 			if turr_damage[0] > 0:
@@ -222,7 +222,7 @@ def print_damage( npc_stats ):
 				print( '{:<2} {:<9} {:<10}'.format(' ', 'Ramps up:', bonus + '% per cycle. Max: ' + max_bonus + '%'))
 			else:
 				print( 'Turrets: ' )
-			print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', turr_dps, prnt_distribution ))
+			print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', sum( turr_dps ), prnt_distribution ))
 			print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
 			print( '{:<2} {:<9} {:<10}'.format(' ', 'Tracking:', tracking ))
 
@@ -243,7 +243,7 @@ def print_damage( npc_stats ):
 			]) * get_attribute( 'missileDamageMultiplier', npc_stats )
 			
 		miss_total = sum( miss_damage )
-		miss_dps = round( miss_total / get_attribute( 'missileLaunchDuration', npc_stats ) * 1000 )
+		miss_dps = miss_damage * ( 1000 / get_attribute( 'missileLaunchDuration', npc_stats ) )
 		
 		range = str( round( get_attribute( 'missileEntityVelocityMultiplier', npc_stats ) * get_attribute( 'maxVelocity', missile_stats ) * get_attribute( 'missileEntityFlightTimeMultiplier', npc_stats ) * get_attribute( 'explosionDelay', missile_stats ) / 1000 /1000, 1 ) ) + ' km'
 		expl_radius = str( round( get_attribute( 'aoeCloudSize', missile_stats ) * get_attribute( 'missileEntityAoeCloudSizeMultiplier', npc_stats  ) ) ) + ' m'
@@ -262,30 +262,30 @@ def print_damage( npc_stats ):
 			
 		
 		print( 'Missiles: ' )
-		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', miss_dps, prnt_distribution ))
+		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', sum(miss_dps), prnt_distribution ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Expl rad:', expl_radius ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Expl vel:', expl_velocity ))
 	
 	# Total damage
 	if miss_total != 0 and turr_total != 0:
-		total_dmg = turr_damage + miss_damage
-		total_total = sum( total_dmg )
-		
 		total_dps = turr_dps + miss_dps
+		total_total = sum( total_dps )
+		
+		
 		
 		prnt_distribution = ''
-		if total_dmg[0] > 0:
-			prnt_distribution += 'EM: ' + str( round( 100 * total_dmg[0] / total_total ) ) + '% '
-		if total_dmg[1] > 0:
-			prnt_distribution += 'Th: ' + str( round( 100 * total_dmg[1] / total_total ) ) + '% '
-		if total_dmg[2] > 0:
-			prnt_distribution += 'Kin: ' + str( round( 100 * total_dmg[2] / total_total ) ) + '% '
-		if total_dmg[3] > 0:
-			prnt_distribution += 'Ex: ' + str( round( 100 * total_dmg[3] / total_total ) ) + '% '
+		if total_dps[0] > 0:
+			prnt_distribution += 'EM: ' + str( round( 100 * total_dps[0] / total_total ) ) + '% '
+		if total_dps[1] > 0:
+			prnt_distribution += 'Th: ' + str( round( 100 * total_dps[1] / total_total ) ) + '% '
+		if total_dps[2] > 0:
+			prnt_distribution += 'Kin: ' + str( round( 100 * total_dps[2] / total_total ) ) + '% '
+		if total_dps[3] > 0:
+			prnt_distribution += 'Ex: ' + str( round( 100 * total_dps[3] / total_total ) ) + '% '
 		
 		print( 'Total: ' )
-		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', total_dps, prnt_distribution ))
+		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', round(total_total), prnt_distribution ))
 	if has_effect( 'entitySuperWeapon', npc_stats ):
 		
 		super_damage = np.array([ 
