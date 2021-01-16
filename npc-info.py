@@ -222,7 +222,7 @@ def print_damage( npc_stats ):
 				print( '{:<2} {:<9} {:<10}'.format(' ', 'Ramps up:', bonus + '% per cycle. Max: ' + max_bonus + '%'))
 			else:
 				print( 'Turrets: ' )
-			print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', sum( turr_dps ), prnt_distribution ))
+			print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', round(sum( turr_dps )), prnt_distribution ))
 			print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
 			print( '{:<2} {:<9} {:<10}'.format(' ', 'Tracking:', tracking ))
 
@@ -262,7 +262,7 @@ def print_damage( npc_stats ):
 			
 		
 		print( 'Missiles: ' )
-		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', sum(miss_dps), prnt_distribution ))
+		print( '{:<2} {:<9} {:<10} {:<8}'.format(' ', 'DPS:', round(sum(miss_dps)), prnt_distribution ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Range:', range ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Expl rad:', expl_radius ))
 		print( '{:<2} {:<9} {:<10}'.format(' ', 'Expl vel:', expl_velocity ))
